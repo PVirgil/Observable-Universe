@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#020308" />
+    <meta
+      name="description"
+      content="A browser-based, procedurally generated journey through the observable universe."
+    />
+    <title>Observable — The Universe in Your Browser</title>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="universe" aria-label="Interactive 3D visualization of the observable universe"></canvas>
+
+      <div class="grain"></div>
+      <div class="vignette"></div>
+
+      <header class="topbar">
+        <button class="brand" id="homeBtn" aria-label="Return to overview">
+          <span class="brand-mark"></span>
+          <span>OBSERVABLE</span>
+        </button>
+
+        <div class="top-actions">
+          <button class="icon-btn" id="soundBtn" aria-label="Toggle ambient sound" title="Ambient sound">
+            <span id="soundIcon">◌</span>
+          </button>
+          <button class="icon-btn" id="helpBtn" aria-label="Open controls" title="Controls">?</button>
+        </div>
+      </header>
+
+      <aside class="left-panel glass">
+        <div class="eyebrow">COSMIC POSITION</div>
+        <h1 id="locationName">Observable Universe</h1>
+        <p id="locationSub">A procedural, scale-inspired map of our cosmic horizon.</p>
+
+        <div class="distance-block">
+          <div class="metric">
+            <span class="metric-label">DISTANCE FROM EARTH</span>
+            <strong id="distanceValue">0 ly</strong>
+          </div>
+          <div class="metric">
+            <span class="metric-label">VIEW SCALE</span>
+            <strong id="scaleValue">Cosmic horizon</strong>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <label class="search">
+          <span>⌕</span>
+          <input id="searchInput" placeholder="Search the cosmos…" autocomplete="off" />
+          <kbd>↵</kbd>
+        </label>
+
+        <div id="searchResults" class="search-results"></div>
+
+        <div class="quick-destinations">
+          <span class="section-label">LANDMARKS</span>
+          <button data-target="earth"><span class="dot cyan"></span>Earth</button>
+          <button data-target="milkyway"><span class="dot blue"></span>Milky Way</button>
+          <button data-target="andromeda"><span class="dot violet"></span>Andromeda</button>
+          <button data-target="virgo"><span class="dot amber"></span>Virgo Cluster</button>
+          <button data-target="great-attractor"><span class="dot red"></span>Great Attractor</button>
+          <button data-target="gn-z11"><span class="dot white"></span>GN-z11</button>
+          <button data-target="horizon"><span class="dot faint"></span>Cosmic Horizon</button>
+        </div>
+      </aside>
+
+      <div class="center-copy" id="heroCopy">
+        <div class="hero-kicker">93 BILLION LIGHT-YEARS ACROSS</div>
+        <h2>Everything we can ever see.</h2>
+        <p>Drag to look around. Scroll to cross cosmic scales.</p>
+        <button class="journey-btn" id="beginBtn">BEGIN JOURNEY <span>→</span></button>
+      </div>
+
+      <aside class="right-panel glass">
+        <div class="right-head">
+          <span class="section-label">COSMIC LAYERS</span>
+          <button id="collapseLayers" aria-label="Collapse panel">−</button>
+        </div>
+
+        <label class="toggle-row">
+          <span>
+            <strong>Cosmic web</strong>
+            <small>Large-scale structure</small>
+          </span>
+          <input type="checkbox" id="webToggle" checked />
+          <i></i>
+        </label>
+        <label class="toggle-row">
+          <span>
+            <strong>Galaxies</strong>
+            <small>Procedural populations</small>
+          </span>
+          <input type="checkbox" id="galaxyToggle" checked />
+          <i></i>
+        </label>
+        <label class="toggle-row">
+          <span>
+            <strong>Reference grid</strong>
+            <small>Scale & orientation</small>
+          </span>
+          <input type="checkbox" id="gridToggle" />
+          <i></i>
+        </label>
+        <label class="toggle-row">
+          <span>
+            <strong>Labels</strong>
+            <small>Named landmarks</small>
+          </span>
+          <input type="checkbox" id="labelToggle" checked />
+          <i></i>
+        </label>
+
+        <div class="divider"></div>
+
+        <div class="time-control">
+          <div class="time-head">
+            <span class="section-label">COSMIC TIME</span>
+            <span id="timeLabel">13.8 BY</span>
+          </div>
+          <input id="timeSlider" type="range" min="0.4" max="13.8" step="0.1" value="13.8" />
+          <div class="time-scale"><span>EARLY</span><span>NOW</span></div>
+        </div>
+      </aside>
+
+      <div class="bottom-hud glass">
+        <div class="hud-item"><span class="pulse"></span><span id="fps">60 FPS</span></div>
+        <div class="hud-divider"></div>
+        <div class="hud-item">OBJECTS <strong id="objectCount">0</strong></div>
+        <div class="hud-divider"></div>
+        <div class="hud-item hide-mobile">FOV <strong id="fovValue">55°</strong></div>
+        <div class="hud-divider hide-mobile"></div>
+        <div class="hud-item hide-mobile">RENDER <strong>WEBGL</strong></div>
+      </div>
+
+      <div id="labels"></div>
+
+      <div class="modal-backdrop" id="helpModal" aria-hidden="true">
+        <div class="modal glass">
+          <button class="modal-close" id="closeHelp">×</button>
+          <div class="eyebrow">NAVIGATION</div>
+          <h3>Explore the universe</h3>
+          <div class="control-grid">
+            <div><kbd>DRAG</kbd><span>Orbit camera</span></div>
+            <div><kbd>SCROLL</kbd><span>Zoom through scale</span></div>
+            <div><kbd>W A S D</kbd><span>Drift through space</span></div>
+            <div><kbd>SHIFT</kbd><span>Boost movement</span></div>
+            <div><kbd>F</kbd><span>Focus nearest landmark</span></div>
+            <div><kbd>ESC</kbd><span>Return to overview</span></div>
+          </div>
+          <p class="modal-note">
+            This experience is a scientifically inspired procedural visualization,
+            not a literal catalog of every object in the observable universe.
+          </p>
+        </div>
+      </div>
+
+      <div id="toast" class="toast glass"></div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
