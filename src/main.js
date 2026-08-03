@@ -477,7 +477,7 @@ groups.landmarks.add(andromeda);
 
 // Label DOM
 const labelRoot = document.querySelector("#labels");
-landmarks.filter(l=>l.id!=="milkyway").forEach(l => {
+landmarks.filter(l=>true).forEach(l => {
   const el = document.createElement("div");
   el.className = "world-label";
   el.dataset.id = l.id;
