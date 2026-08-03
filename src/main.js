@@ -423,51 +423,13 @@ groups.landmarks.add(earthGroup);
 const earthSurface = new THREE.Mesh(
   new THREE.SphereGeometry(5, 128, 96),
   new THREE.MeshPhongMaterial({
-    map: buildEarthTexture(),
-    bumpMap: buildEarthTexture(1024,512,"bump"),
-    bumpScale: .14,
-    specularMap: buildEarthTexture(1024,512,"specular"),
-    specular: new THREE.Color(0x8fb8d8),
-    shininess: 58,
-    emissiveMap: buildEarthTexture(1024,512,"lights"),
-    emissive: new THREE.Color(0xffa24a),
-    emissiveIntensity: .9
+    color: 0xb9dcff
   })
 );
 earthGroup.add(earthSurface);
 
-const clouds = new THREE.Mesh(
-  new THREE.SphereGeometry(5.075, 128, 96),
-  new THREE.MeshPhongMaterial({
-    map: buildEarthTexture(1024,512,"clouds"),
-    transparent:true, opacity:.82, depthWrite:false,
-    blending:THREE.NormalBlending
-  })
-);
-earthGroup.add(clouds);
-
-const atmosphere = new THREE.Mesh(
-  new THREE.SphereGeometry(5.22, 128, 96),
-  new THREE.ShaderMaterial({
-    transparent:true, side:THREE.BackSide, depthWrite:false,
-    blending:THREE.AdditiveBlending,
-    uniforms:{ glowColor:{value:new THREE.Color(0x4aa8ff)} },
-    vertexShader:`varying vec3 vNormal; varying vec3 vWorldPosition;
-      void main(){ vNormal=normalize(normalMatrix*normal); vec4 wp=modelMatrix*vec4(position,1.0);
-      vWorldPosition=wp.xyz; gl_Position=projectionMatrix*viewMatrix*wp; }`,
-    fragmentShader:`varying vec3 vNormal; varying vec3 vWorldPosition; uniform vec3 glowColor;
-      void main(){ vec3 viewDir=normalize(cameraPosition-vWorldPosition);
-      float rim=pow(1.0-max(0.0,dot(vNormal,viewDir)),2.8);
-      gl_FragColor=vec4(glowColor, rim*.7); }`
-  })
-);
-earthGroup.add(atmosphere);
-
-const sun = new THREE.DirectionalLight(0xfff4dc, 3.1);
-sun.position.set(35,18,28);
-earthGroup.add(sun);
-earthGroup.add(new THREE.HemisphereLight(0x4d70a8,0x02040a,.4));
-
+const clouds = new THREE.Group();
+const atmosphere = new THREE.Group();
 // Andromeda visual
 const andromeda = makeSpiralGalaxy(120, 3500, 2);
 andromeda.position.set(540,65,-620);
