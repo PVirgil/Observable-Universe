@@ -33,7 +33,9 @@ button { color: inherit; }
 .brand-mark:before { content:""; position:absolute; inset:4px; border:1px solid rgba(255,255,255,.5); border-radius:50%; }
 .brand-mark:after { content:""; position:absolute; left:8px; top:-4px; width:1px; height:24px; background:rgba(255,255,255,.24); transform:rotate(38deg); }
 .top-actions { display:flex; gap:8px; pointer-events:auto; }
-.icon-btn { width:38px; height:38px; border-radius:50%; border:1px solid var(--stroke); background:rgba(5,8,16,.38); cursor:pointer; transition:.2s; }
+.icon-btn { width:38px; height:38px; border-radius:50%; border:1px solid var(--stroke); background:rgba(5,8,16,.38); cursor:pointer; transition:.2s; display:inline-flex; align-items:center; justify-content:center; padding:0; }
+.sound-dot { width:7px; height:7px; min-width:7px; min-height:7px; border-radius:50%; background:#7d8599; box-shadow:0 0 0 1px rgba(255,255,255,.08); transform:translateY(-2px); transition:background .2s, box-shadow .2s, transform .2s; }
+#soundBtn.is-on .sound-dot { background:#91f0c1; box-shadow:0 0 10px rgba(145,240,193,.85); }
 .icon-btn:hover { border-color:rgba(255,255,255,.35); background:rgba(255,255,255,.08); }
 
 .left-panel, .right-panel { position:fixed; z-index:8; top:88px; width:300px; border-radius:18px; padding:22px; transition:.35s cubic-bezier(.2,.8,.2,1); }
