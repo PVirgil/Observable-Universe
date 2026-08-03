@@ -251,17 +251,138 @@ const landmarks = [
 ];
 
 const landmarkSprites = new Map();
-landmarks.forEach((l, idx) => {
+landmarks.filter(l => l.id !== "earth").forEach((l) => {
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
-    map:radialTexture(), color: idx === 0 ? 0x8fe6ff : 0xb7c6ff,
+    map:radialTexture(), color:0xb7c6ff,
     transparent:true, opacity:.8, blending:THREE.AdditiveBlending, depthWrite:false
   }));
   sprite.position.set(...l.pos);
-  const s = l.id === "earth" ? 16 : 36;
-  sprite.scale.set(s,s,1);
+  sprite.scale.set(36,36,1);
   groups.landmarks.add(sprite);
   landmarkSprites.set(l.id, sprite);
 });
+
+// Detailed procedural Earth: terrain, oceans, city lights, clouds, and atmosphere.
+function hash2(x, y) {
+  const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453123;
+  return s - Math.floor(s);
+}
+function smoothNoise(x, y) {
+  const ix = Math.floor(x), iy = Math.floor(y);
+  const fx = x - ix, fy = y - iy;
+  const u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
+  const a = hash2(ix, iy), b = hash2(ix + 1, iy);
+  const c = hash2(ix, iy + 1), d = hash2(ix + 1, iy + 1);
+  return THREE.MathUtils.lerp(THREE.MathUtils.lerp(a, b, u), THREE.MathUtils.lerp(c, d, u), v);
+}
+function fbm(x, y, octaves=6) {
+  let value = 0, amp = .5, freq = 1;
+  for (let i=0; i<octaves; i++) {
+    value += smoothNoise(x*freq, y*freq) * amp;
+    freq *= 2.03; amp *= .5;
+  }
+  return value;
+}
+function buildEarthTexture(width=1024, height=512, mode="surface") {
+  const c = document.createElement("canvas");
+  c.width = width; c.height = height;
+  const ctx = c.getContext("2d");
+  const img = ctx.createImageData(width, height);
+  for (let y=0; y<height; y++) {
+    const lat = (y/height-.5)*Math.PI;
+    for (let x=0; x<width; x++) {
+      const lon = (x/width)*TAU-Math.PI;
+      const nx = x/width*5.3, ny = y/height*2.7;
+      const continental =
+        fbm(nx, ny, 6) +
+        .22*Math.sin(lon*1.7 + Math.sin(lat*2.4)) +
+        .12*Math.cos(lon*3.1-lat*1.6) -
+        .10*Math.abs(Math.sin(lat*2.8));
+      const ice = Math.pow(Math.max(0,(Math.abs(lat)-1.12)/.45), .65);
+      const coast = continental - .55;
+      const i=(y*width+x)*4;
+      if (mode === "clouds") {
+        const cloud = fbm(nx*2.1+12, ny*2.1+8, 5) + .18*Math.sin(lon*5+lat*3);
+        const alpha = Math.max(0, Math.min(1, (cloud-.54)*4.2)) * (1-ice*.35);
+        img.data[i]=245; img.data[i+1]=249; img.data[i+2]=255; img.data[i+3]=Math.round(alpha*190);
+      } else if (mode === "lights") {
+        const inhabited = Math.max(0, coast) * (1-ice) * Math.max(0, 1-Math.abs(lat)/1.15);
+        const lights = inhabited * Math.pow(hash2(x*.31,y*.31), 8) * 7;
+        img.data[i]=255; img.data[i+1]=155; img.data[i+2]=65; img.data[i+3]=Math.round(Math.min(1,lights)*255);
+      } else {
+        let r,g,b;
+        if (coast > 0) {
+          const elev = Math.min(1, coast*4.7);
+          const dry = Math.max(0, Math.sin(lon*2.2-lat*3.7)*.5+.5) * Math.max(0,1-Math.abs(lat)/1.3);
+          r = 38 + elev*62 + dry*48;
+          g = 82 + elev*72 + dry*24;
+          b = 38 + elev*30;
+        } else {
+          const depth = Math.min(1,-coast*3.2);
+          r = 4 + depth*3; g = 34 + depth*11; b = 72 + depth*48;
+        }
+        r = THREE.MathUtils.lerp(r,235,ice); g=THREE.MathUtils.lerp(g,242,ice); b=THREE.MathUtils.lerp(b,248,ice);
+        img.data[i]=r; img.data[i+1]=g; img.data[i+2]=b; img.data[i+3]=255;
+      }
+    }
+  }
+  ctx.putImageData(img,0,0);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  tex.wrapS = THREE.RepeatWrapping;
+  return tex;
+}
+const earthPosition = new THREE.Vector3(...landmarks.find(l=>l.id==="earth").pos);
+const earthGroup = new THREE.Group();
+earthGroup.position.copy(earthPosition);
+earthGroup.rotation.z = THREE.MathUtils.degToRad(-23.4);
+groups.landmarks.add(earthGroup);
+
+const earthSurface = new THREE.Mesh(
+  new THREE.SphereGeometry(5, 96, 64),
+  new THREE.MeshPhongMaterial({
+    map: buildEarthTexture(),
+    specular: new THREE.Color(0x6d8fb2),
+    shininess: 42,
+    emissiveMap: buildEarthTexture(1024,512,"lights"),
+    emissive: new THREE.Color(0xffa24a),
+    emissiveIntensity: .65
+  })
+);
+earthGroup.add(earthSurface);
+
+const clouds = new THREE.Mesh(
+  new THREE.SphereGeometry(5.075, 96, 64),
+  new THREE.MeshPhongMaterial({
+    map: buildEarthTexture(1024,512,"clouds"),
+    transparent:true, opacity:.82, depthWrite:false,
+    blending:THREE.NormalBlending
+  })
+);
+earthGroup.add(clouds);
+
+const atmosphere = new THREE.Mesh(
+  new THREE.SphereGeometry(5.22, 96, 64),
+  new THREE.ShaderMaterial({
+    transparent:true, side:THREE.BackSide, depthWrite:false,
+    blending:THREE.AdditiveBlending,
+    uniforms:{ glowColor:{value:new THREE.Color(0x4aa8ff)} },
+    vertexShader:`varying vec3 vNormal; varying vec3 vWorldPosition;
+      void main(){ vNormal=normalize(normalMatrix*normal); vec4 wp=modelMatrix*vec4(position,1.0);
+      vWorldPosition=wp.xyz; gl_Position=projectionMatrix*viewMatrix*wp; }`,
+    fragmentShader:`varying vec3 vNormal; varying vec3 vWorldPosition; uniform vec3 glowColor;
+      void main(){ vec3 viewDir=normalize(cameraPosition-vWorldPosition);
+      float rim=pow(1.0-max(0.0,dot(vNormal,viewDir)),2.8);
+      gl_FragColor=vec4(glowColor, rim*.7); }`
+  })
+);
+earthGroup.add(atmosphere);
+
+const sun = new THREE.DirectionalLight(0xfff4dc, 3.1);
+sun.position.set(35,18,28);
+earthGroup.add(sun);
+earthGroup.add(new THREE.HemisphereLight(0x4d70a8,0x02040a,.4));
 
 // Andromeda visual
 const andromeda = makeSpiralGalaxy(120, 3500, 2);
@@ -383,26 +504,81 @@ document.querySelector("#collapseLayers").onclick=()=>{
   document.querySelector("#collapseLayers").textContent=hidden?"−":"+";
 };
 
-let audioCtx, ambientNode;
-document.querySelector("#soundBtn").onclick=()=>{
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-    const osc=audioCtx.createOscillator(), gain=audioCtx.createGain();
-    osc.type="sine"; osc.frequency.value=52; gain.gain.value=.018;
-    const lfo=audioCtx.createOscillator(), lfoGain=audioCtx.createGain();
-    lfo.frequency.value=.08; lfoGain.gain.value=.009;
-    lfo.connect(lfoGain); lfoGain.connect(gain.gain);
-    osc.connect(gain); gain.connect(audioCtx.destination);
-    osc.start(); lfo.start(); ambientNode=gain;
-    document.querySelector("#soundIcon").textContent="●";
-    showToast("Ambient tone on");
-  } else {
-    const on = ambientNode.gain.value > .001;
-    ambientNode.gain.setTargetAtTime(on?0:.018,audioCtx.currentTime,.08);
-    document.querySelector("#soundIcon").textContent=on?"◌":"●";
-    showToast(on?"Ambient tone off":"Ambient tone on");
+let audioCtx;
+let ambientMaster;
+let ambientEnabled = false;
+const soundButton = document.querySelector("#soundBtn");
+
+function createAmbientSoundscape() {
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  ambientMaster = audioCtx.createGain();
+  ambientMaster.gain.value = 0;
+  ambientMaster.connect(audioCtx.destination);
+
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.value = 520;
+  filter.Q.value = .45;
+  filter.connect(ambientMaster);
+
+  // Warm layered drone.
+  [43.65, 65.41, 87.31].forEach((frequency, index) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = index === 0 ? "sine" : "triangle";
+    osc.frequency.value = frequency;
+    gain.gain.value = [.16,.055,.025][index];
+    osc.connect(gain).connect(filter);
+    osc.start();
+  });
+
+  // Slowly moving filtered noise gives the ambience audible texture.
+  const seconds = 4;
+  const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * seconds, audioCtx.sampleRate);
+  const channel = buffer.getChannelData(0);
+  let last = 0;
+  for (let i=0; i<channel.length; i++) {
+    const white = Math.random()*2-1;
+    last = last*.985 + white*.015;
+    channel[i] = last*.7;
   }
-};
+  const noise = audioCtx.createBufferSource();
+  noise.buffer = buffer; noise.loop = true;
+  const noiseGain = audioCtx.createGain();
+  noiseGain.gain.value = .22;
+  noise.connect(noiseGain).connect(filter);
+  noise.start();
+
+  const lfo = audioCtx.createOscillator();
+  const lfoGain = audioCtx.createGain();
+  lfo.frequency.value = .055;
+  lfoGain.gain.value = 90;
+  lfo.connect(lfoGain).connect(filter.frequency);
+  lfo.start();
+}
+
+async function setAmbient(enabled) {
+  if (!audioCtx) createAmbientSoundscape();
+  if (audioCtx.state === "suspended") await audioCtx.resume();
+  ambientEnabled = enabled;
+  const now = audioCtx.currentTime;
+  ambientMaster.gain.cancelScheduledValues(now);
+  ambientMaster.gain.setValueAtTime(ambientMaster.gain.value, now);
+  ambientMaster.gain.linearRampToValueAtTime(enabled ? .075 : 0, now + .55);
+  soundButton.classList.toggle("is-on", enabled);
+  soundButton.setAttribute("aria-pressed", String(enabled));
+  showToast(enabled ? "Ambient sound on" : "Ambient sound off");
+}
+
+soundButton.setAttribute("aria-pressed","false");
+soundButton.addEventListener("click", async () => {
+  try {
+    await setAmbient(!ambientEnabled);
+  } catch (error) {
+    console.error("Unable to start ambient audio:", error);
+    showToast("Audio was blocked by the browser");
+  }
+});
 
 let toastTimer;
 function showToast(text){
@@ -470,6 +646,8 @@ function animate(now){
   groups.web.rotation.y += dt*.00055;
   milkyWay.rotation.y += dt*.006;
   andromeda.rotation.y -= dt*.004;
+  earthSurface.rotation.y += dt*.055;
+  clouds.rotation.y += dt*.067;
   coreGlow.material.opacity=.48+Math.sin(now*.001)*.07;
 
   updateLabels();
