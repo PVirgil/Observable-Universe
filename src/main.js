@@ -241,7 +241,7 @@ for (const r of [500, 1500, 3500, 7000, 11500]) {
 groups.grid.visible = false;
 
 const landmarks = [
-  { id:"earth", name:"Earth", sub:"A Pale Blue Dot", pos:[92,2,-14], distance:"0 ly", scale:"Planetary", cam:22 },
+  { id:"earth", name:"Earth", sub:"A Pale Blue Dot", pos:[92,2,-14], distance:"0 ly", scale:"Planetary", cam:2 },
   { id:"milkyway", name:"Milky Way", sub:"Barred spiral galaxy", pos:[0,0,0], distance:"26,000 ly to center", scale:"Galactic", cam:430 },
   { id:"andromeda", name:"Andromeda", sub:"M31 · spiral galaxy", pos:[540,65,-620], distance:"2.54M ly", scale:"Local Group", cam:220 },
   { id:"virgo", name:"Virgo Cluster", sub:"Galaxy cluster", pos:[1350,-220,-1020], distance:"53.8M ly", scale:"Cluster", cam:460 },
@@ -421,15 +421,11 @@ earthGroup.rotation.z = THREE.MathUtils.degToRad(-23.4);
 groups.landmarks.add(earthGroup);
 
 const earthSurface = new THREE.Mesh(
-  new THREE.SphereGeometry(5, 128, 96),
-  new THREE.MeshPhongMaterial({
-    color: 0xb9dcff
-  })
+  new THREE.SphereGeometry(0.6,32,24),
+  new THREE.MeshBasicMaterial({color:0xb9dcff})
 );
 earthGroup.add(earthSurface);
 
-const clouds = new THREE.Group();
-const atmosphere = new THREE.Group();
 // Andromeda visual
 const andromeda = makeSpiralGalaxy(120, 3500, 2);
 andromeda.position.set(540,65,-620);
