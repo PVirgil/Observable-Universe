@@ -23,7 +23,7 @@ controls.dampingFactor = 0.035;
 controls.enablePan = false;
 controls.rotateSpeed = 0.35;
 controls.zoomSpeed = 0.65;
-controls.minDistance = 3;
+controls.minDistance = 0.25;
 controls.maxDistance = 18000;
 controls.target.set(0, 0, 0);
 
